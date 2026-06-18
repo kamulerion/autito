@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Cyber Autito - Juego de Conducción 3D</title>
+    <meta name="description" content="Un emocionante juego de esquivar obstáculos en 3D en tercera persona, optimizado para móviles. ¡Conduce, recolecta monedas y desbloquea poderes!">
+    
+    <!-- Enlace al archivo de estilos -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Cargamos Three.js desde un CDN confiable. 
+         Three.js es la biblioteca estándar de facto para renderizar 3D mediante WebGL en navegadores. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    
+    <!-- Cargamos nuestro script de juego principal -->
+    <script src="game.js" defer></script>
+</head>
+<body>
+    <!-- Contenedor principal del juego -->
+    <div id="game-wrapper">
+        <!-- El lienzo (Canvas) 3D donde Three.js dibujará el mundo se insertará aquí -->
+        <div id="canvas-container"></div>
+        
+        <!-- Capa de interfaz de usuario (UI) que se superpone al canvas 3D -->
+        <div id="ui-layer">
+            
+            <!-- HUD (Heads-Up Display) activo durante la partida -->
+            <div id="hud" class="ui-panel hidden">
+                <div class="hud-item" id="score-container">
+                    <span class="hud-label">DISTANCIA</span>
+                    <span class="hud-value" id="score-value">0m</span>
+                </div>
+                <div class="hud-item" id="coins-container">
+                    <span class="hud-label">MONEDAS</span>
+                    <span class="hud-value" id="coins-value">0</span>
+                </div>
+                <!-- Barra de indicador de poder activo -->
+                <div id="power-indicator" class="hidden">
+                    <span id="power-name">NITRO</span>
+                    <div class="progress-bar-bg">
+                        <div id="power-progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pantalla del Menú Principal -->
+            <div id="main-menu" class="ui-panel">
+                <h1 id="game-title">CYBER AUTITO</h1>
+                <p id="game-subtitle">Esquiva obstáculos y supera tu récord</p>
+                <div class="menu-actions">
+                    <button id="btn-start" class="btn btn-primary">JUGAR</button>
+                    <button id="btn-garage" class="btn btn-secondary">GARAJE</button>
+                </div>
+                <div class="high-score-display">
+                    RÉCORD: <span id="high-score-val">0m</span>
+                </div>
+            </div>
+
+            <!-- Pantallas adicionales (GameOver, Garage, etc.) se agregarán en fases posteriores -->
+            
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+el concepto del juego:
+un juego multiplayer online donde se maneja un autito con controles al estilo de subway surfers.
+el juego mantiene cuenta de la distancia que el jugador recorre sin chocar.
+los jugadores compiten por la mayor distancia.
+hay un ranking general
+
+considerar a futuro 
+curvas a considerar a futuro

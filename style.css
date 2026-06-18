@@ -1,0 +1,235 @@
+/* Reset de estilos básicos */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none; /* Desactiva gestos por defecto del navegador como zoom al hacer doble toque */
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #111;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #fff;
+}
+
+/* Envoltura principal para contener el juego y la interfaz */
+#game-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* El canvas 3D se ajusta a la envoltura */
+#canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Capa de interfaz de usuario superpuesta */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none; /* Permite que los eventos de mouse pasen al canvas 3D si no hay elementos interactivos encima */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Paneles de la interfaz */
+.ui-panel {
+    pointer-events: auto; /* Reactiva clicks para los menús y HUD */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- MENÚ PRINCIPAL --- */
+#main-menu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(20, 20, 20, 0.85); /* Fondo oscuro básico de programador */
+    z-index: 10;
+    padding: 20px;
+}
+
+#game-title {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    color: #eee;
+}
+
+#game-subtitle {
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+    color: #888;
+}
+
+.menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 280px;
+    margin-bottom: 30px;
+}
+
+.high-score-display {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #bbb;
+}
+
+/* --- BOTONES BÁSICOS DE PROGRAMADOR --- */
+.btn {
+    padding: 14px 28px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border: 2px solid #555;
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: #222;
+    color: #fff;
+    transition: background-color 0.2s, border-color 0.2s;
+    width: 100%;
+}
+
+.btn:active {
+    background-color: #444;
+}
+
+.btn-primary {
+    background-color: #3b82f6; /* Azul básico */
+    border-color: #2563eb;
+}
+
+.btn-primary:active {
+    background-color: #1d4ed8;
+}
+
+.btn-secondary {
+    background-color: #4b5563; /* Gris */
+    border-color: #374151;
+}
+
+.btn-secondary:active {
+    background-color: #1f2937;
+}
+
+/* --- HUD (Interfaz Durante Juego) --- */
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.hud-item {
+    background-color: rgba(30, 30, 30, 0.7);
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    min-width: 100px;
+}
+
+.hud-label {
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+.hud-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+/* Indicador de poder */
+#power-indicator {
+    position: absolute;
+    top: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 300px;
+    background-color: rgba(30, 30, 30, 0.8);
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+#power-name {
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background-color: #222;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#power-progress-fill {
+    width: 100%;
+    height: 100%;
+    background-color: #eab308; /* Amarillo */
+    transition: width 0.1s linear;
+}
+
+/* Adaptación para pantallas de escritorio (simula pantalla vertical de móvil centrada si es muy ancha) */
+@media (min-width: 600px) {
+    #game-wrapper {
+        width: 100%;
+        max-width: 480px; /* Ancho de pantalla móvil simulado en PC */
+        height: 100%;
+        border-left: 2px solid #333;
+        border-right: 2px solid #333;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+    }
+    
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #050505;
+    }
+}
