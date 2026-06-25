@@ -134,6 +134,195 @@ function createWorld() {
 }
 
 /**
+ * Función que construye un dinosaurio T-Rex en 3D utilizando bloques y geometrías simples.
+ * Basado en la foto de referencia, con su característica cabeza grande, brazos cortos y ojos saltones.
+ */
+function createDinosaur() {
+    const dino = new THREE.Group();
+    
+    // Paleta de materiales (Basic Programmer Art)
+    const dinoMat = new THREE.MeshStandardMaterial({ 
+        color: 0x8fa39b, // Tono grisáceo verdoso de la foto
+        roughness: 0.8,
+        metalness: 0.1 
+    });
+    const bellyMat = new THREE.MeshStandardMaterial({
+        color: 0xa5baa5, // Panza de un tono más claro
+        roughness: 0.8
+    });
+    const darkMat = new THREE.MeshStandardMaterial({ 
+        color: 0x4f5450, // Púas, garras y detalles oscuros
+        roughness: 0.9 
+    });
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const eyePupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const teethMat = new THREE.MeshBasicMaterial({ color: 0xeeeeee });
+
+    // A. CUERPO (Tronco principal inclinado)
+    const bodyGeo = new THREE.BoxGeometry(0.38, 0.48, 0.48);
+    const body = new THREE.Mesh(bodyGeo, dinoMat);
+    body.position.set(0, 0.24, -0.04);
+    dino.add(body);
+
+    // Panza (Detalle de color más claro en el pecho/panza)
+    const bellyGeo = new THREE.BoxGeometry(0.32, 0.38, 0.08);
+    const belly = new THREE.Mesh(bellyGeo, bellyMat);
+    belly.position.set(0, 0.24, 0.21);
+    dino.add(belly);
+
+    // B. CUELLO
+    const neckGeo = new THREE.BoxGeometry(0.24, 0.22, 0.24);
+    const neck = new THREE.Mesh(neckGeo, dinoMat);
+    neck.position.set(0, 0.46, 0.08);
+    neck.rotation.x = 0.15; // Inclinación hacia adelante
+    dino.add(neck);
+
+    // C. CABEZA (El rasgo más distintivo, grande y caricaturesca)
+    const headGeo = new THREE.BoxGeometry(0.34, 0.32, 0.42);
+    const head = new THREE.Mesh(headGeo, dinoMat);
+    head.position.set(0, 0.62, 0.18);
+    dino.add(head);
+
+    // Mandíbula inferior (Abierta para simular la sonrisa con dientes)
+    const jawGeo = new THREE.BoxGeometry(0.32, 0.1, 0.32);
+    const jaw = new THREE.Mesh(jawGeo, dinoMat);
+    jaw.position.set(0, 0.46, 0.22);
+    jaw.rotation.x = -0.12; // Boca abierta
+    dino.add(jaw);
+
+    // D. DIENTES (Pequeños bloques blancos a los lados de la mandíbula)
+    const toothGeo = new THREE.BoxGeometry(0.04, 0.05, 0.04);
+    
+    // Dientes superiores izquierdos
+    const toothL1 = new THREE.Mesh(toothGeo, teethMat);
+    toothL1.position.set(-0.16, 0.50, 0.35);
+    dino.add(toothL1);
+    const toothL2 = new THREE.Mesh(toothGeo, teethMat);
+    toothL2.position.set(-0.16, 0.50, 0.25);
+    dino.add(toothL2);
+
+    // Dientes superiores derechos
+    const toothR1 = new THREE.Mesh(toothGeo, teethMat);
+    toothR1.position.set(0.16, 0.50, 0.35);
+    dino.add(toothR1);
+    const toothR2 = new THREE.Mesh(toothGeo, teethMat);
+    toothR2.position.set(0.16, 0.50, 0.25);
+    dino.add(toothR2);
+
+    // E. OJOS SALTONES (Similares al render: blancos, saltones y con cejas/párpados salientes)
+    const eyeGeo = new THREE.BoxGeometry(0.11, 0.11, 0.11);
+    const pupilGeo = new THREE.BoxGeometry(0.06, 0.06, 0.02);
+
+    // Ojo Izquierdo
+    const eyeL = new THREE.Mesh(eyeGeo, eyeWhiteMat);
+    eyeL.position.set(-0.17, 0.66, 0.22);
+    dino.add(eyeL);
+    const pupilL = new THREE.Mesh(pupilGeo, eyePupilMat);
+    pupilL.position.set(-0.21, 0.66, 0.27);
+    dino.add(pupilL);
+
+    // Ojo Derecho
+    const eyeR = new THREE.Mesh(eyeGeo, eyeWhiteMat);
+    eyeR.position.set(0.17, 0.66, 0.22);
+    dino.add(eyeR);
+    const pupilR = new THREE.Mesh(pupilGeo, eyePupilMat);
+    pupilR.position.set(0.21, 0.66, 0.27);
+    dino.add(pupilR);
+
+    // Párpados / Cejas abultadas sobre los ojos
+    const eyelidGeo = new THREE.BoxGeometry(0.13, 0.05, 0.13);
+    const eyelidL = new THREE.Mesh(eyelidGeo, dinoMat);
+    eyelidL.position.set(-0.17, 0.72, 0.22);
+    dino.add(eyelidL);
+    
+    const eyelidR = new THREE.Mesh(eyelidGeo, dinoMat);
+    eyelidR.position.set(0.17, 0.72, 0.22);
+    dino.add(eyelidR);
+
+    // F. COLA (Segmentada y curvada hacia arriba)
+    const tailSegment1Geo = new THREE.BoxGeometry(0.26, 0.22, 0.3);
+    const tailSegment1 = new THREE.Mesh(tailSegment1Geo, dinoMat);
+    tailSegment1.position.set(0, 0.18, -0.32);
+    tailSegment1.rotation.x = -0.25; // Apunta hacia atrás y arriba
+    dino.add(tailSegment1);
+
+    const tailSegment2Geo = new THREE.BoxGeometry(0.18, 0.14, 0.32);
+    const tailSegment2 = new THREE.Mesh(tailSegment2Geo, dinoMat);
+    tailSegment2.position.set(0, 0.26, -0.56);
+    tailSegment2.rotation.x = -0.1;
+    dino.add(tailSegment2);
+
+    // G. PATAS TRASERAS (Muslos anchos y pies con garras oscuras)
+    const legGeo = new THREE.BoxGeometry(0.12, 0.32, 0.2);
+    const footGeo = new THREE.BoxGeometry(0.16, 0.06, 0.24);
+    const clawGeo = new THREE.BoxGeometry(0.04, 0.04, 0.05);
+
+    // Pata Izquierda
+    const legL = new THREE.Mesh(legGeo, dinoMat);
+    legL.position.set(-0.22, 0.12, -0.05);
+    dino.add(legL);
+    const footL = new THREE.Mesh(footGeo, dinoMat);
+    footL.position.set(-0.22, -0.03, 0.03);
+    dino.add(footL);
+    
+    const clawL1 = new THREE.Mesh(clawGeo, darkMat);
+    clawL1.position.set(-0.26, -0.03, 0.15);
+    dino.add(clawL1);
+    const clawL2 = new THREE.Mesh(clawGeo, darkMat);
+    clawL2.position.set(-0.18, -0.03, 0.15);
+    dino.add(clawL2);
+
+    // Pata Derecha
+    const legR = new THREE.Mesh(legGeo, dinoMat);
+    legR.position.set(0.22, 0.12, -0.05);
+    dino.add(legR);
+    const footR = new THREE.Mesh(footGeo, dinoMat);
+    footR.position.set(0.22, -0.03, 0.03);
+    dino.add(footR);
+
+    const clawR1 = new THREE.Mesh(clawGeo, darkMat);
+    clawR1.position.set(0.26, -0.03, 0.15);
+    dino.add(clawR1);
+    const clawR2 = new THREE.Mesh(clawGeo, darkMat);
+    clawR2.position.set(0.18, -0.03, 0.15);
+    dino.add(clawR2);
+
+    // H. BRAZOS CORTOS (Manos diminutas)
+    const armGeo = new THREE.BoxGeometry(0.06, 0.12, 0.1);
+    const handGeo = new THREE.BoxGeometry(0.06, 0.04, 0.06);
+
+    // Brazo Izquierdo
+    const armL = new THREE.Mesh(armGeo, dinoMat);
+    armL.position.set(-0.2, 0.32, 0.18);
+    armL.rotation.x = 0.4;
+    dino.add(armL);
+    const handL = new THREE.Mesh(handGeo, darkMat);
+    handL.position.set(-0.2, 0.26, 0.22);
+    dino.add(handL);
+
+    // Brazo Derecho
+    const armR = new THREE.Mesh(armGeo, dinoMat);
+    armR.position.set(0.2, 0.32, 0.18);
+    armR.rotation.x = 0.4;
+    dino.add(armR);
+    const handR = new THREE.Mesh(handGeo, darkMat);
+    handR.position.set(0.2, 0.26, 0.22);
+    dino.add(handR);
+
+    // I. PÚAS / ESCAMAS EN LA ESPALDA
+    const spikeGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+    for (let i = 0; i < 6; i++) {
+        const spike = new THREE.Mesh(spikeGeo, darkMat);
+        // Distribuimos las púas a lo largo de la columna
+        spike.position.set(0, 0.46 - (i * 0.03), -0.02 - (i * 0.09));
+        spike.rotation.x = 0.5;
+        dino.add(spike);
+    }
+
+    return dino;
+}
+
+/**
  * 3. Modelado del Auto del Jugador (Basic Programmer Art)
  * Creamos un auto compuesto por cajas y cilindros sencillos agrupados.
  */
@@ -186,6 +375,12 @@ function createPlayerCar() {
     const rightLight = new THREE.Mesh(lightGeo, lightMat);
     rightLight.position.set(0.25, 0.18, 0.7);
     playerCar.add(rightLight);
+
+    // E. MASCOTA DINOSAURIO (T-Rex montado en el techo del auto)
+    const dinoMascot = createDinosaur();
+    dinoMascot.position.set(0, 0.46, -0.05);
+    dinoMascot.scale.set(0.75, 0.75, 0.75); // Ajustamos tamaño para que encaje como mascota sobre el techo
+    playerCar.add(dinoMascot);
 
     // Posición inicial del auto: carril central (índice 2), en el origen Z = 0
     targetX = getLaneX(currentLane);
