@@ -33,6 +33,13 @@ let targetX = 0;         // Posición X objetivo a la que el auto debe moverse
 let currentSpeed = GameConfig.defaultSpeed;
 let targetSpeed = GameConfig.defaultSpeed;
 
+// --- VARIABLES DE OBSTÁCULOS (DINOSAURIOS CORREDORES) ---
+let obstacles = [];          // Dinosaurios activos en la carretera
+let obstaclePool = [];       // Contenedor de dinosaurios inactivos para reusar (Object Pooling)
+const maxObstaclesInPool = 8; // Límite de dinosaurios en memoria
+let timeSinceLastSpawn = 0;  // Cronómetro de generación
+const spawnInterval = 1.6;   // Segundos entre la generación de cada dinosaurio
+
 // Variables para gestos táctiles (móviles)
 let touchStartX = 0;
 let touchStartY = 0;
@@ -43,6 +50,7 @@ window.addEventListener('DOMContentLoaded', () => {
     initEngine();
     createWorld();
     createPlayerCar();
+    createObstaclePool(); // Inicializamos el pool de dinosaurios antes de jugar
     setupEvents();
     
     // Iniciamos el ciclo principal del juego
@@ -135,36 +143,24 @@ function createWorld() {
 
 /**
  * Función que construye un dinosaurio T-Rex en 3D utilizando bloques y geometrías simples.
- * Basado en la foto de referencia, con su característica cabeza grande, brazos cortos y ojos saltones.
  */
 function createDinosaur() {
     const dino = new THREE.Group();
     
-    // Paleta de materiales (Basic Programmer Art)
-    const dinoMat = new THREE.MeshStandardMaterial({ 
-        color: 0x8fa39b, // Tono grisáceo verdoso de la foto
-        roughness: 0.8,
-        metalness: 0.1 
-    });
-    const bellyMat = new THREE.MeshStandardMaterial({
-        color: 0xa5baa5, // Panza de un tono más claro
-        roughness: 0.8
-    });
-    const darkMat = new THREE.MeshStandardMaterial({ 
-        color: 0x4f5450, // Púas, garras y detalles oscuros
-        roughness: 0.9 
-    });
+    // Paleta de materiales
+    const dinoMat = new THREE.MeshStandardMaterial({ color: 0x8fa39b, roughness: 0.8, metalness: 0.1 });
+    const bellyMat = new THREE.MeshStandardMaterial({ color: 0xa5baa5, roughness: 0.8 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x4f5450, roughness: 0.9 });
     const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const eyePupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
     const teethMat = new THREE.MeshBasicMaterial({ color: 0xeeeeee });
 
-    // A. CUERPO (Tronco principal inclinado)
+    // A. CUERPO
     const bodyGeo = new THREE.BoxGeometry(0.38, 0.48, 0.48);
     const body = new THREE.Mesh(bodyGeo, dinoMat);
     body.position.set(0, 0.24, -0.04);
     dino.add(body);
 
-    // Panza (Detalle de color más claro en el pecho/panza)
     const bellyGeo = new THREE.BoxGeometry(0.32, 0.38, 0.08);
     const belly = new THREE.Mesh(bellyGeo, bellyMat);
     belly.position.set(0, 0.24, 0.21);
@@ -174,34 +170,29 @@ function createDinosaur() {
     const neckGeo = new THREE.BoxGeometry(0.24, 0.22, 0.24);
     const neck = new THREE.Mesh(neckGeo, dinoMat);
     neck.position.set(0, 0.46, 0.08);
-    neck.rotation.x = 0.15; // Inclinación hacia adelante
+    neck.rotation.x = 0.15;
     dino.add(neck);
 
-    // C. CABEZA (El rasgo más distintivo, grande y caricaturesca)
+    // C. CABEZA
     const headGeo = new THREE.BoxGeometry(0.34, 0.32, 0.42);
     const head = new THREE.Mesh(headGeo, dinoMat);
     head.position.set(0, 0.62, 0.18);
     dino.add(head);
 
-    // Mandíbula inferior (Abierta para simular la sonrisa con dientes)
     const jawGeo = new THREE.BoxGeometry(0.32, 0.1, 0.32);
     const jaw = new THREE.Mesh(jawGeo, dinoMat);
     jaw.position.set(0, 0.46, 0.22);
-    jaw.rotation.x = -0.12; // Boca abierta
+    jaw.rotation.x = -0.12;
     dino.add(jaw);
 
-    // D. DIENTES (Pequeños bloques blancos a los lados de la mandíbula)
+    // D. DIENTES
     const toothGeo = new THREE.BoxGeometry(0.04, 0.05, 0.04);
-    
-    // Dientes superiores izquierdos
     const toothL1 = new THREE.Mesh(toothGeo, teethMat);
     toothL1.position.set(-0.16, 0.50, 0.35);
     dino.add(toothL1);
     const toothL2 = new THREE.Mesh(toothGeo, teethMat);
     toothL2.position.set(-0.16, 0.50, 0.25);
     dino.add(toothL2);
-
-    // Dientes superiores derechos
     const toothR1 = new THREE.Mesh(toothGeo, teethMat);
     toothR1.position.set(0.16, 0.50, 0.35);
     dino.add(toothR1);
@@ -209,19 +200,15 @@ function createDinosaur() {
     toothR2.position.set(0.16, 0.50, 0.25);
     dino.add(toothR2);
 
-    // E. OJOS SALTONES (Similares al render: blancos, saltones y con cejas/párpados salientes)
+    // E. OJOS
     const eyeGeo = new THREE.BoxGeometry(0.11, 0.11, 0.11);
     const pupilGeo = new THREE.BoxGeometry(0.06, 0.06, 0.02);
-
-    // Ojo Izquierdo
     const eyeL = new THREE.Mesh(eyeGeo, eyeWhiteMat);
     eyeL.position.set(-0.17, 0.66, 0.22);
     dino.add(eyeL);
     const pupilL = new THREE.Mesh(pupilGeo, eyePupilMat);
     pupilL.position.set(-0.21, 0.66, 0.27);
     dino.add(pupilL);
-
-    // Ojo Derecho
     const eyeR = new THREE.Mesh(eyeGeo, eyeWhiteMat);
     eyeR.position.set(0.17, 0.66, 0.22);
     dino.add(eyeR);
@@ -229,160 +216,59 @@ function createDinosaur() {
     pupilR.position.set(0.21, 0.66, 0.27);
     dino.add(pupilR);
 
-    // Párpados / Cejas abultadas sobre los ojos
-    const eyelidGeo = new THREE.BoxGeometry(0.13, 0.05, 0.13);
-    const eyelidL = new THREE.Mesh(eyelidGeo, dinoMat);
-    eyelidL.position.set(-0.17, 0.72, 0.22);
-    dino.add(eyelidL);
-    
-    const eyelidR = new THREE.Mesh(eyelidGeo, dinoMat);
-    eyelidR.position.set(0.17, 0.72, 0.22);
-    dino.add(eyelidR);
-
-    // F. COLA (Segmentada y curvada hacia arriba)
-    const tailSegment1Geo = new THREE.BoxGeometry(0.26, 0.22, 0.3);
-    const tailSegment1 = new THREE.Mesh(tailSegment1Geo, dinoMat);
-    tailSegment1.position.set(0, 0.18, -0.32);
-    tailSegment1.rotation.x = -0.25; // Apunta hacia atrás y arriba
-    dino.add(tailSegment1);
-
-    const tailSegment2Geo = new THREE.BoxGeometry(0.18, 0.14, 0.32);
-    const tailSegment2 = new THREE.Mesh(tailSegment2Geo, dinoMat);
-    tailSegment2.position.set(0, 0.26, -0.56);
-    tailSegment2.rotation.x = -0.1;
-    dino.add(tailSegment2);
-
-    // G. PATAS TRASERAS (Muslos anchos y pies con garras oscuras)
+    // F. PATAS
     const legGeo = new THREE.BoxGeometry(0.12, 0.32, 0.2);
-    const footGeo = new THREE.BoxGeometry(0.16, 0.06, 0.24);
-    const clawGeo = new THREE.BoxGeometry(0.04, 0.04, 0.05);
-
-    // Pata Izquierda
     const legL = new THREE.Mesh(legGeo, dinoMat);
-    legL.position.set(-0.22, 0.12, -0.05);
+    legL.position.set(-0.15, 0.1, 0);
     dino.add(legL);
-    const footL = new THREE.Mesh(footGeo, dinoMat);
-    footL.position.set(-0.22, -0.03, 0.03);
-    dino.add(footL);
-    
-    const clawL1 = new THREE.Mesh(clawGeo, darkMat);
-    clawL1.position.set(-0.26, -0.03, 0.15);
-    dino.add(clawL1);
-    const clawL2 = new THREE.Mesh(clawGeo, darkMat);
-    clawL2.position.set(-0.18, -0.03, 0.15);
-    dino.add(clawL2);
-
-    // Pata Derecha
     const legR = new THREE.Mesh(legGeo, dinoMat);
-    legR.position.set(0.22, 0.12, -0.05);
+    legR.position.set(0.15, 0.1, 0);
     dino.add(legR);
-    const footR = new THREE.Mesh(footGeo, dinoMat);
-    footR.position.set(0.22, -0.03, 0.03);
-    dino.add(footR);
 
-    const clawR1 = new THREE.Mesh(clawGeo, darkMat);
-    clawR1.position.set(0.26, -0.03, 0.15);
-    dino.add(clawR1);
-    const clawR2 = new THREE.Mesh(clawGeo, darkMat);
-    clawR2.position.set(0.18, -0.03, 0.15);
-    dino.add(clawR2);
-
-    // H. BRAZOS CORTOS (Manos diminutas)
-    const armGeo = new THREE.BoxGeometry(0.06, 0.12, 0.1);
-    const handGeo = new THREE.BoxGeometry(0.06, 0.04, 0.06);
-
-    // Brazo Izquierdo
-    const armL = new THREE.Mesh(armGeo, dinoMat);
-    armL.position.set(-0.2, 0.32, 0.18);
-    armL.rotation.x = 0.4;
-    dino.add(armL);
-    const handL = new THREE.Mesh(handGeo, darkMat);
-    handL.position.set(-0.2, 0.26, 0.22);
-    dino.add(handL);
-
-    // Brazo Derecho
-    const armR = new THREE.Mesh(armGeo, dinoMat);
-    armR.position.set(0.2, 0.32, 0.18);
-    armR.rotation.x = 0.4;
-    dino.add(armR);
-    const handR = new THREE.Mesh(handGeo, darkMat);
-    handR.position.set(0.2, 0.26, 0.22);
-    dino.add(handR);
-
-    // I. PÚAS / ESCAMAS EN LA ESPALDA
-    const spikeGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
-    for (let i = 0; i < 6; i++) {
-        const spike = new THREE.Mesh(spikeGeo, darkMat);
-        // Distribuimos las púas a lo largo de la columna
-        spike.position.set(0, 0.46 - (i * 0.03), -0.02 - (i * 0.09));
-        spike.rotation.x = 0.5;
-        dino.add(spike);
-    }
+    // Guardamos referencias de las patas en userData para poder animarlas cuando el dino corra
+    dino.userData = { legL: legL, legR: legR };
 
     return dino;
 }
 
 /**
- * 3. Modelado del Auto del Jugador (Basic Programmer Art)
- * Creamos un auto compuesto por cajas y cilindros sencillos agrupados.
+ * 3. Modelado del Auto del Jugador
  */
 function createPlayerCar() {
-    // Un THREE.Group nos permite agrupar múltiples objetos 3D y moverlos/rotarlos como una sola unidad.
     playerCar = new THREE.Group();
 
-    // A. Chasis Principal (El cuerpo bajo del coche) - Caja azul
     const chassisGeo = new THREE.BoxGeometry(0.8, 0.25, 1.4);
-    const chassisMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.5 }); // Azul
+    const chassisMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.5 });
     const chassis = new THREE.Mesh(chassisGeo, chassisMat);
-    chassis.position.y = 0.15; // Un poco elevado del suelo para las ruedas
+    chassis.position.y = 0.15;
     playerCar.add(chassis);
 
-    // B. Cabina (El habitáculo donde va el piloto) - Caja negra/cristal
     const cabinGeo = new THREE.BoxGeometry(0.65, 0.25, 0.7);
-    const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.2 }); // Gris oscuro brillante
+    const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.2 });
     const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-    cabin.position.set(0, 0.35, 0.1); // Sobre el chasis y ligeramente hacia atrás
+    cabin.position.set(0, 0.35, 0.1);
     playerCar.add(cabin);
 
-    // C. Ruedas (4 cilindros negros)
     const wheelGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.15, 16);
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 }); // Negro goma
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
     
-    // Posiciones relativas para las 4 ruedas
     const wheelPositions = [
-        { x: -0.45, y: 0.2, z: 0.45 },  // Delantera Izquierda
-        { x: 0.45, y: 0.2, z: 0.45 },   // Delantera Derecha
-        { x: -0.45, y: 0.2, z: -0.45 }, // Trasera Izquierda
-        { x: 0.45, y: 0.2, z: -0.45 }   // Trasera Derecha
+        { x: -0.45, y: 0.2, z: 0.45 }, { x: 0.45, y: 0.2, z: 0.45 },
+        { x: -0.45, y: 0.2, z: -0.45 }, { x: 0.45, y: 0.2, z: -0.45 }
     ];
 
     wheelPositions.forEach(pos => {
         const wheel = new THREE.Mesh(wheelGeo, wheelMat);
         wheel.position.set(pos.x, pos.y, pos.z);
-        // Los cilindros se crean verticales por defecto, los rotamos en Z para que rueden de adelante a atrás
         wheel.rotation.z = Math.PI / 2;
         playerCar.add(wheel);
     });
 
-    // D. Faros delanteros (Dos cubos amarillos pequeños que brillan)
-    const lightGeo = new THREE.BoxGeometry(0.12, 0.08, 0.05);
-    const lightMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 }); // Amarillo auto-iluminado
-    
-    const leftLight = new THREE.Mesh(lightGeo, lightMat);
-    leftLight.position.set(-0.25, 0.18, 0.7);
-    playerCar.add(leftLight);
-
-    const rightLight = new THREE.Mesh(lightGeo, lightMat);
-    rightLight.position.set(0.25, 0.18, 0.7);
-    playerCar.add(rightLight);
-
-    // E. MASCOTA DINOSAURIO (T-Rex montado en el techo del auto)
     const dinoMascot = createDinosaur();
     dinoMascot.position.set(0, 0.46, -0.05);
-    dinoMascot.scale.set(0.75, 0.75, 0.75); // Ajustamos tamaño para que encaje como mascota sobre el techo
+    dinoMascot.scale.set(0.75, 0.75, 0.75);
     playerCar.add(dinoMascot);
 
-    // Posición inicial del auto: carril central (índice 2), en el origen Z = 0
     targetX = getLaneX(currentLane);
     playerCar.position.set(targetX, 0, 0);
     
@@ -390,10 +276,104 @@ function createPlayerCar() {
 }
 
 /**
- * 4. Configuración de Controles (Teclado y Táctil Móvil)
+ * Inicialización del pool de objetos (Object Pooling) para los dinosaurios.
+ */
+function createObstaclePool() {
+    for (let i = 0; i < maxObstaclesInPool; i++) {
+        const dino = createDinosaur();
+        dino.visible = false;
+        
+        dino.userData = {
+            active: false,
+            speed: 0,
+            direction: 'toward',
+            randomOffset: 0,
+            legL: dino.userData.legL,
+            legR: dino.userData.legR
+        };
+        
+        scene.add(dino);
+        obstaclePool.push(dino);
+    }
+}
+
+/**
+ * Genera un dinosaurio obstáculo.
+ */
+function spawnObstacle() {
+    const dino = obstaclePool.find(d => !d.userData.active);
+    if (!dino) return;
+
+    const lane = Math.floor(Math.random() * GameConfig.laneCount);
+    const direction = Math.random() > 0.45 ? 'toward' : 'away';
+    const relativeSpeed = (direction === 'toward') ? 3.5 : -2.5;
+
+    dino.position.set(getLaneX(lane), 0, -GameConfig.roadLength);
+    dino.rotation.y = (direction === 'toward') ? Math.PI : 0;
+    dino.scale.set(0.9, 0.9, 0.9);
+
+    if (dino.userData.legL) dino.userData.legL.rotation.x = 0;
+    if (dino.userData.legR) dino.userData.legR.rotation.x = 0;
+
+    dino.userData.active = true;
+    dino.userData.speed = relativeSpeed;
+    dino.userData.direction = direction;
+    dino.userData.randomOffset = Math.random() * Math.PI * 2;
+    dino.visible = true;
+
+    obstacles.push(dino);
+}
+
+/**
+ * Regresa un dinosaurio al pool
+ */
+function despawnObstacle(dino) {
+    dino.visible = false;
+    dino.userData.active = false;
+    obstacles = obstacles.filter(o => o !== dino);
+}
+
+/**
+ * Finaliza la partida por choque
+ */
+function triggerGameOver() {
+    gameActive = false;
+    document.getElementById('game-title').textContent = "FIN DEL JUEGO";
+    document.getElementById('game-subtitle').textContent = `¡Chocaste! Recorriste ${Math.floor(distanceTraveled)}m.`;
+    document.getElementById('btn-start').textContent = "REINTENTAR";
+    document.getElementById('main-menu').classList.remove('hidden');
+    document.getElementById('hud').classList.add('hidden');
+}
+
+/**
+ * Resetea el juego
+ */
+function resetGame() {
+    distanceTraveled = 0;
+    document.getElementById('score-value').textContent = "0m";
+
+    obstacles.forEach(o => {
+        o.visible = false;
+        o.userData.active = false;
+    });
+    obstacles = [];
+
+    currentLane = 2;
+    targetX = getLaneX(currentLane);
+    playerCar.position.set(targetX, 0, 0);
+    playerCar.rotation.set(0, 0, 0);
+
+    currentSpeed = GameConfig.defaultSpeed;
+    targetSpeed = GameConfig.defaultSpeed;
+    timeSinceLastSpawn = 0;
+
+    gameActive = true;
+}
+
+/**
+ * 4. Configuración de Controles
  */
 function setupEvents() {
-    // Redimensionamiento de pantalla
     window.addEventListener('resize', () => {
         const container = document.getElementById('canvas-container');
         camera.aspect = container.clientWidth / container.clientHeight;
@@ -401,198 +381,112 @@ function setupEvents() {
         renderer.setSize(container.clientWidth, container.clientHeight);
     });
 
-    // Botón JUGAR del menú
     document.getElementById('btn-start').addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('hud').classList.remove('hidden');
-        gameActive = true;
+        resetGame();
     });
 
-    // --- CONTROLES DE TECLADO ---
     window.addEventListener('keydown', (e) => {
         if (!gameActive) return;
-
         switch (e.key) {
-            // Cambio de carril a la izquierda
-            case 'ArrowLeft':
-            case 'a':
-            case 'A':
-                if (currentLane > 0) {
-                    currentLane--;
-                    targetX = getLaneX(currentLane);
-                }
+            case 'ArrowLeft': case 'a': case 'A':
+                if (currentLane > 0) { currentLane--; targetX = getLaneX(currentLane); }
                 break;
-            // Cambio de carril a la derecha
-            case 'ArrowRight':
-            case 'd':
-            case 'D':
-                if (currentLane < GameConfig.laneCount - 1) {
-                    currentLane++;
-                    targetX = getLaneX(currentLane);
-                }
+            case 'ArrowRight': case 'd': case 'D':
+                if (currentLane < GameConfig.laneCount - 1) { currentLane++; targetX = getLaneX(currentLane); }
                 break;
-            // Acelerar (presión única o mantener presionado)
-            case 'ArrowUp':
-            case 'w':
-            case 'W':
-                targetSpeed = GameConfig.maxSpeed;
-                break;
-            // Desacelerar / Frenar
-            case 'ArrowDown':
-            case 's':
-            case 'S':
-                targetSpeed = GameConfig.minSpeed;
-                break;
+            case 'ArrowUp': case 'w': case 'W': targetSpeed = GameConfig.maxSpeed; break;
+            case 'ArrowDown': case 's': case 'S': targetSpeed = GameConfig.minSpeed; break;
         }
     });
 
-    // Retornar a la velocidad crucero normal cuando se sueltan las teclas de aceleración/freno
     window.addEventListener('keyup', (e) => {
         if (!gameActive) return;
-        
-        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' ||
-            e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
-            targetSpeed = GameConfig.defaultSpeed;
-        }
+        if (['ArrowUp', 'w', 'W', 'ArrowDown', 's', 'S'].includes(e.key)) targetSpeed = GameConfig.defaultSpeed;
     });
 
-    // --- CONTROLES TÁCTILES (MÓVIL - SWIPES/DESLIZAMIENTOS) ---
     const container = document.getElementById('game-wrapper');
-
     container.addEventListener('touchstart', (e) => {
         if (!gameActive) return;
-        // Guardamos el punto de inicio del toque en pantalla (coordenadas X, Y)
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
     }, { passive: true });
 
     container.addEventListener('touchend', (e) => {
         if (!gameActive) return;
-        
-        // Coordenadas donde se levantó el dedo
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-
-        // Calculamos la distancia del desplazamiento en ambos ejes
-        const diffX = touchEndX - touchStartX;
-        const diffY = touchEndY - touchStartY;
-
-        // Determinamos si el gesto fue más horizontal o más vertical
+        const diffX = e.changedTouches[0].clientX - touchStartX;
+        const diffY = e.changedTouches[0].clientY - touchStartY;
         if (Math.abs(diffX) > Math.abs(diffY)) {
-            // Gesto Horizontal
             if (Math.abs(diffX) > minSwipeDistance) {
-                if (diffX > 0) {
-                    // Deslizó a la derecha -> Mover a carril derecho
-                    if (currentLane < GameConfig.laneCount - 1) {
-                        currentLane++;
-                        targetX = getLaneX(currentLane);
-                    }
-                } else {
-                    // Deslizó a la izquierda -> Mover a carril izquierdo
-                    if (currentLane > 0) {
-                        currentLane--;
-                        targetX = getLaneX(currentLane);
-                    }
-                }
+                if (diffX > 0 && currentLane < GameConfig.laneCount - 1) { currentLane++; targetX = getLaneX(currentLane); }
+                else if (diffX < 0 && currentLane > 0) { currentLane--; targetX = getLaneX(currentLane); }
             }
-        } else {
-            // Gesto Vertical
-            if (Math.abs(diffY) > minSwipeDistance) {
-                if (diffY < 0) {
-                    // Deslizó hacia arriba -> Acelerar temporalmente
-                    targetSpeed = GameConfig.maxSpeed;
-                    // Programamos que vuelva a la velocidad por defecto en un segundo
-                    setTimeout(() => {
-                        if (targetSpeed === GameConfig.maxSpeed) {
-                            targetSpeed = GameConfig.defaultSpeed;
-                        }
-                    }, 1000);
-                } else {
-                    // Deslizó hacia abajo -> Desacelerar temporalmente
-                    targetSpeed = GameConfig.minSpeed;
-                    setTimeout(() => {
-                        if (targetSpeed === GameConfig.minSpeed) {
-                            targetSpeed = GameConfig.defaultSpeed;
-                        }
-                    }, 1000);
-                }
-            }
+        } else if (Math.abs(diffY) > minSwipeDistance) {
+            targetSpeed = diffY < 0 ? GameConfig.maxSpeed : GameConfig.minSpeed;
+            setTimeout(() => targetSpeed = GameConfig.defaultSpeed, 1000);
         }
     }, { passive: true });
 }
 
 /**
- * 5. Ciclo de Animación y Actualización (Game Loop)
+ * 5. Ciclo de Animación
  */
 let distanceTraveled = 0;
 
 function animate(time) {
     requestAnimationFrame(animate);
-
-    // Calculamos el deltaTime: tiempo transcurrido desde el último fotograma en segundos
-    // Esto asegura que la velocidad del juego sea idéntica en cualquier pantalla (60hz, 120hz, etc.)
-    const deltaTime = Math.min((time - lastTime) / 1000, 0.1); // Limitamos a 0.1 para evitar saltos gigantescos si hay lag
+    const deltaTime = Math.min((time - lastTime) / 1000, 0.1);
     lastTime = time;
 
     if (gameActive) {
-        // A. INTERPOLACIÓN HORIZONTAL DE CARRIL (LERP)
-        // La interpolación lineal (Lerp) calcula un punto intermedio entre la posición actual y la objetivo.
-        // Fórmula básica: actual = actual + (objetivo - actual) * factor_velocidad
-        // Esto hace que el auto no aparezca de golpe en el nuevo carril, sino que se desplace suavemente.
-        const lerpFactor = 12 * deltaTime; // Ajusta el '12' para hacer el cambio más rápido o más lento
-        playerCar.position.x = THREE.MathUtils.lerp(playerCar.position.x, targetX, lerpFactor);
-
-        // B. ROTACIÓN SUTIL AL GIRAR (Inclinación visual deportiva)
-        // Hacemos que el auto se incline ligeramente sobre el eje Z hacia el carril al que se dirige.
-        const targetRotationZ = (targetX - playerCar.position.x) * -0.15;
-        playerCar.rotation.z = THREE.MathUtils.lerp(playerCar.rotation.z, targetRotationZ, 8 * deltaTime);
-
-        // C. CONTROL DE LA CÁMARA (Seguimiento del jugador)
-        // La cámara sigue suavemente la posición horizontal (X) del auto para mantenerlo centrado.
+        playerCar.position.x = THREE.MathUtils.lerp(playerCar.position.x, targetX, 12 * deltaTime);
+        playerCar.rotation.z = THREE.MathUtils.lerp(playerCar.rotation.z, (targetX - playerCar.position.x) * -0.15, 8 * deltaTime);
+        
         camera.position.x = THREE.MathUtils.lerp(camera.position.x, playerCar.position.x, 10 * deltaTime);
         camera.lookAt(new THREE.Vector3(camera.position.x, 0.8, -10));
 
-        // D. CONTROL DE VELOCIDAD
-        // Interpolamos la velocidad actual hacia la velocidad objetivo (acelerando o frenando con inercia)
         currentSpeed = THREE.MathUtils.lerp(currentSpeed, targetSpeed, GameConfig.speedChangeRate * deltaTime);
 
-        // E. SIMULACIÓN DE AVANCE (Scrolling del Escenario)
-        // En lugar de mover el auto hacia adelante de forma infinita (lo que causaría que las coordenadas 3D
-        // crecieran tanto que perderían precisión), dejamos el auto fijo en Z = 0 y movemos el escenario hacia ATRÁS.
-        const scrollAmount = currentSpeed * deltaTime;
-        
-        // Movemos las líneas de los carriles hacia atrás (Z positivo)
-        laneLines.forEach(line => {
-            line.position.z += scrollAmount;
-            
-            // Si una línea pasa por detrás del auto (Z > 5), la reposicionamos al inicio de la carretera (Z = -roadLength)
-            // Esto crea un bucle infinito de carretera sin consumir memoria adicional.
-            if (line.position.z > 5) {
-                line.position.z -= GameConfig.roadLength;
-            }
+        const playerDino = playerCar.children.find(c => c.userData && c.userData.legL);
+        if (playerDino) {
+            const swingAngle = Math.sin(time * 0.001 * (currentSpeed * 0.8)) * 0.25;
+            playerDino.userData.legL.rotation.x = swingAngle;
+            playerDino.userData.legR.rotation.x = -swingAngle;
+        }
+
+        timeSinceLastSpawn += deltaTime;
+        if (timeSinceLastSpawn >= spawnInterval) {
+            spawnObstacle();
+            timeSinceLastSpawn = 0;
+        }
+
+        [...obstacles].forEach(dino => {
+            dino.position.z += (currentSpeed + dino.userData.speed) * deltaTime;
+            const legAngle = Math.sin(time * 0.001 * (dino.userData.direction === 'toward' ? 14 : 9) + dino.userData.randomOffset) * 0.45;
+            if (dino.userData.legL) { dino.userData.legL.rotation.x = legAngle; dino.userData.legR.rotation.x = -legAngle; }
+
+            if (dino.position.z > 6) { despawnObstacle(dino); return; }
+
+            const playerBox = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(playerCar.position.x, 0.25, 0), new THREE.Vector3(0.65, 0.5, 1.25));
+            const obstacleBox = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(dino.position.x, 0.35, dino.position.z), new THREE.Vector3(0.35, 0.7, 0.45));
+
+            if (playerBox.intersectsBox(obstacleBox)) triggerGameOver();
         });
 
-        // E. CONTABILIZAR DISTANCIA
-        // La distancia recorrida aumenta según la velocidad actual
-        distanceTraveled += scrollAmount;
+        laneLines.forEach(line => {
+            line.position.z += currentSpeed * deltaTime;
+            if (line.position.z > 5) line.position.z -= GameConfig.roadLength;
+        });
+
+        distanceTraveled += currentSpeed * deltaTime;
         document.getElementById('score-value').textContent = Math.floor(distanceTraveled) + "m";
     }
-
     renderer.render(scene, camera);
 }
 
-/**
- * FUNCIÓN AUXILIAR: Calcula la posición X del centro de un carril.
- * Para 5 carriles y ancho de carril 1.6:
- * Carril 0: X = -3.2 (Extremo Izquierdo)
- * Carril 1: X = -1.6
- * Carril 2: X = 0.0 (Centro)
- * Carril 3: X = 1.6
- * Carril 4: X = 3.2 (Extremo Derecho)
- */
 function getLaneX(laneIndex) {
     const roadWidth = GameConfig.laneCount * GameConfig.laneWidth;
     const startX = -roadWidth / 2 + GameConfig.laneWidth / 2;
     return startX + (laneIndex * GameConfig.laneWidth);
 }
-
