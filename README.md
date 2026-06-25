@@ -8,11 +8,14 @@ Este proyecto está planteado de forma educativa para aprender desarrollo de vid
 
 ---
 
-## 🚀 Características Actuales (Fase 1 Completada)
+## 🚀 Características Actuales (Fases 1 y 2 Completadas)
 *   **Motor 3D Nativo**: Renderizado de gráficos 3D mediante **Three.js** y WebGL para un alto rendimiento (60 FPS).
 *   **Diseño Adaptable (Mobile-First)**: Interfaz vertical optimizada para pantallas móviles, con previsualización centrada en computadoras de escritorio.
 *   **Carretera Parametrizada**: Estructura de carriles configurable por variable (`laneCount = 5`). La autopista y marcas se dibujan automáticamente según los parámetros establecidos.
-*   **HUD en Tiempo Real**: Marcador de distancia recorrida.
+*   **Modelo de Auto 3D**: Auto deportivo creado programáticamente mediante primitivas de Three.js (chasis, cabina, faros y ruedas).
+*   **Controles Dinámicos Híbridos**: Soporte de teclado (WASD / Flechas) y gestos táctiles en móviles (deslizar) con respuesta inmediata.
+*   **Movimiento Suave (Lerp)**: Transición horizontal lateral suave entre carriles e inclinación del chasis al girar.
+*   **HUD en Tiempo Real**: Marcador de distancia recorrida calculada según la velocidad actual del jugador.
 
 ---
 
@@ -35,7 +38,7 @@ Para iniciar el servidor local y jugar en tu navegador, necesitas tener Python i
 El desarrollo está organizado en 6 fases progresivas:
 
 *   **[x] Fase 1**: Configuración del Lienzo 3D, cámara de perspectiva y autopista multi-carril. (Completado)
-*   **[ ] Fase 2**: Modelado del auto en 3D (programmer art) y controles táctiles de deslizamiento (swipe) + teclado.
+*   **[x] Fase 2**: Modelado del auto en 3D (programmer art) y controles táctiles de deslizamiento (swipe) + teclado. (Completado)
 *   **[ ] Fase 3**: Carretera infinita en movimiento, generación aleatoria de obstáculos/monedas y colisiones AABB.
 *   **[ ] Fase 4**: Bucle y estados de juego (Inicio, HUD, Game Over, Tienda) y poderes especiales (Salto, Nitro, Imán, Escudo).
 *   **[ ] Fase 5**: Tienda de mejoras (Garaje) para comprar/mejorar poderes usando monedas recolectadas, y guardado local.
