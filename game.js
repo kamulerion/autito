@@ -33,12 +33,17 @@ let targetX = 0;         // Posición X objetivo a la que el auto debe moverse
 let currentSpeed = GameConfig.defaultSpeed;
 let targetSpeed = GameConfig.defaultSpeed;
 
-// --- VARIABLES DE OBSTÁCULOS (DINOSAURIOS CORREDORES) ---
-let obstacles = [];          // Dinosaurios activos en la carretera
-let obstaclePool = [];       // Contenedor de dinosaurios inactivos para reusar (Object Pooling)
-const maxObstaclesInPool = 8; // Límite de dinosaurios en memoria
-let timeSinceLastSpawn = 0;  // Cronómetro de generación
-const spawnInterval = 1.6;   // Segundos entre la generación de cada dinosaurio
+// --- VARIABLES DE OBSTÁCULOS (DINOSAURIOS CORREDORES Y OSOS GUERREROS) ---
+let obstacles = [];          
+let obstaclePool = [];       
+const maxObstaclesInPool = 18; // Incrementado para la mayor frecuencia de obstáculos
+let timeSinceLastSpawn = 0;  
+const spawnInterval = 0.85;   // Reducido a la mitad para duplicar la densidad de obstáculos
+
+// Variables para el modelo GLB cargado dinámicamente
+let loadedBearModel = null;
+let bearScaleFactor = 1.0;
+let bearYOffset = 0.0;
 
 // Variables para gestos táctiles (móviles)
 let touchStartX = 0;
@@ -51,6 +56,7 @@ window.addEventListener('DOMContentLoaded', () => {
     createWorld();
     createPlayerCar();
     createObstaclePool(); // Inicializamos el pool de dinosaurios antes de jugar
+    loadGLBModel();       // Comenzamos a cargar el modelo .glb del Oso Guerrero en paralelo
     setupEvents();
     
     // Iniciamos el ciclo principal del juego
@@ -276,52 +282,88 @@ function createPlayerCar() {
 }
 
 /**
- * Inicialización del pool de objetos (Object Pooling) para los dinosaurios.
+ * Inicialización del pool de objetos (Object Pooling) usando grupos contenedores.
+ * Cada contenedor aloja un T-Rex por defecto y puede añadir un oso GLB cuando se cargue.
  */
 function createObstaclePool() {
     for (let i = 0; i < maxObstaclesInPool; i++) {
-        const dino = createDinosaur();
-        dino.visible = false;
-        
-        dino.userData = {
+        const container = new THREE.Group();
+        container.visible = false;
+
+        // Creamos el T-Rex base
+        const tRex = createDinosaur();
+        tRex.name = "trex";
+        container.add(tRex);
+
+        container.userData = {
             active: false,
             speed: 0,
             direction: 'toward',
             randomOffset: 0,
-            legL: dino.userData.legL,
-            legR: dino.userData.legR
+            legL: tRex.userData.legL, // Referencia para la animación del T-Rex
+            legR: tRex.userData.legR,
+            type: 'trex'
         };
-        
-        scene.add(dino);
-        obstaclePool.push(dino);
+
+        scene.add(container);
+        obstaclePool.push(container);
     }
 }
 
 /**
- * Genera un dinosaurio obstáculo.
+ * Genera un obstáculo aleatorio (T-Rex o el oso GLB si está cargado).
  */
 function spawnObstacle() {
-    const dino = obstaclePool.find(d => !d.userData.active);
-    if (!dino) return;
+    const container = obstaclePool.find(d => !d.userData.active);
+    if (!container) return; // Pool lleno
 
     const lane = Math.floor(Math.random() * GameConfig.laneCount);
     const direction = Math.random() > 0.45 ? 'toward' : 'away';
     const relativeSpeed = (direction === 'toward') ? 3.5 : -2.5;
 
-    dino.position.set(getLaneX(lane), 0, -GameConfig.roadLength);
-    dino.rotation.y = (direction === 'toward') ? Math.PI : 0;
-    dino.scale.set(0.9, 0.9, 0.9);
+    container.position.set(getLaneX(lane), 0, -GameConfig.roadLength);
+    container.rotation.y = (direction === 'toward') ? Math.PI : 0;
 
-    if (dino.userData.legL) dino.userData.legL.rotation.x = 0;
-    if (dino.userData.legR) dino.userData.legR.rotation.x = 0;
+    // Decisión de tipo: si el oso GLB cargó, le damos 60% probabilidad; si no, 100% T-Rex
+    const useBear = loadedBearModel && (Math.random() > 0.4);
+    
+    const trexChild = container.getObjectByName("trex");
+    let bearChild = container.getObjectByName("bear");
 
-    dino.userData.active = true;
-    dino.userData.speed = relativeSpeed;
-    dino.userData.direction = direction;
-    dino.userData.randomOffset = Math.random() * Math.PI * 2;
-    dino.visible = true;
+    if (useBear) {
+        container.userData.type = 'bear';
+        if (trexChild) trexChild.visible = false;
+        
+        // Si no se ha creado el clon del oso para este contenedor, lo instanciamos
+        if (!bearChild) {
+            bearChild = loadedBearModel.clone();
+            bearChild.name = "bear";
+            // Centramos los pies del oso a Y = 0 usando el offset calculado al cargar
+            bearChild.position.set(0, bearYOffset, 0);
+            container.add(bearChild);
+        }
+        bearChild.visible = true;
+        // Ajustamos la escala del contenedor para que sea un obstáculo desafiante
+        container.scale.set(0.95, 0.95, 0.95);
+    } else {
+        container.userData.type = 'trex';
+        if (bearChild) bearChild.visible = false;
+        if (trexChild) {
+            trexChild.visible = true;
+            // Reseteamos las patas del T-Rex
+            if (container.userData.legL) container.userData.legL.rotation.x = 0;
+            if (container.userData.legR) container.userData.legR.rotation.x = 0;
+        }
+        container.scale.set(0.9, 0.9, 0.9);
+    }
 
-    obstacles.push(dino);
+    container.userData.active = true;
+    container.userData.speed = relativeSpeed;
+    container.userData.direction = direction;
+    container.userData.randomOffset = Math.random() * Math.PI * 2;
+    container.visible = true;
+
+    obstacles.push(container);
 }
 
 /**
@@ -463,13 +505,37 @@ function animate(time) {
 
         [...obstacles].forEach(dino => {
             dino.position.z += (currentSpeed + dino.userData.speed) * deltaTime;
-            const legAngle = Math.sin(time * 0.001 * (dino.userData.direction === 'toward' ? 14 : 9) + dino.userData.randomOffset) * 0.45;
-            if (dino.userData.legL) { dino.userData.legL.rotation.x = legAngle; dino.userData.legR.rotation.x = -legAngle; }
+
+            // Animación según el tipo de obstáculo
+            if (dino.userData.type === 'bear') {
+                // El oso no tiene articulaciones animables por defecto, así que rebota y se ladea graciosamente
+                const bob = Math.abs(Math.sin(time * 0.008 + dino.userData.randomOffset)) * 0.12;
+                const tilt = Math.sin(time * 0.006 + dino.userData.randomOffset) * 0.08;
+                const bearMesh = dino.getObjectByName("bear");
+                if (bearMesh) {
+                    bearMesh.position.y = bearYOffset + bob;
+                    bearMesh.rotation.y = tilt;
+                }
+            } else {
+                // Animación de patas del T-Rex
+                const legSwing = dino.userData.direction === 'toward' ? 14 : 9;
+                const legAngle = Math.sin(time * 0.001 * legSwing + dino.userData.randomOffset) * 0.45;
+                if (dino.userData.legL) { dino.userData.legL.rotation.x = legAngle; dino.userData.legR.rotation.x = -legAngle; }
+            }
 
             if (dino.position.z > 6) { despawnObstacle(dino); return; }
 
-            const playerBox = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(playerCar.position.x, 0.25, 0), new THREE.Vector3(0.65, 0.5, 1.25));
-            const obstacleBox = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(dino.position.x, 0.35, dino.position.z), new THREE.Vector3(0.35, 0.7, 0.45));
+            // Detección de colisiones (AABB)
+            const playerBox = new THREE.Box3().setFromCenterAndSize(
+                new THREE.Vector3(playerCar.position.x, 0.25, 0),
+                new THREE.Vector3(0.65, 0.5, 1.25)
+            );
+            
+            const boxHeight = dino.userData.type === 'bear' ? 1.15 : 0.7;
+            const obstacleBox = new THREE.Box3().setFromCenterAndSize(
+                new THREE.Vector3(dino.position.x, boxHeight / 2, dino.position.z),
+                new THREE.Vector3(0.45, boxHeight, 0.45)
+            );
 
             if (playerBox.intersectsBox(obstacleBox)) triggerGameOver();
         });
@@ -489,4 +555,41 @@ function getLaneX(laneIndex) {
     const roadWidth = GameConfig.laneCount * GameConfig.laneWidth;
     const startX = -roadWidth / 2 + GameConfig.laneWidth / 2;
     return startX + (laneIndex * GameConfig.laneWidth);
+}
+
+/**
+ * Carga el modelo 3D GLB del Oso Guerrero de forma asíncrona.
+ * Normaliza su escala para que coincida con las dimensiones del juego.
+ */
+function loadGLBModel() {
+    const loader = new THREE.GLTFLoader();
+    loader.load('Meshy_AI_stylized_bear_warrior_0625223519_texture.glb', (gltf) => {
+        loadedBearModel = gltf.scene;
+        
+        // Hacemos un cálculo de caja de colisión para escalar al Oso de forma automática a una altura de 1.15 unidades
+        const box = new THREE.Box3().setFromObject(loadedBearModel);
+        const size = box.getSize(new THREE.Vector3());
+        const targetHeight = 1.15;
+        bearScaleFactor = targetHeight / size.y;
+        
+        // El pie del modelo debe apoyarse en Y = 0.
+        // Calculamos la coordenada Y mínima relativa multiplicada por la escala,
+        // lo que nos dice a qué profundidad queda el pie y cómo compensarlo.
+        bearYOffset = -box.min.y * bearScaleFactor;
+        
+        // Aplicamos la escala al modelo prototipo
+        loadedBearModel.scale.set(bearScaleFactor, bearScaleFactor, bearScaleFactor);
+        
+        // Activamos sombras
+        loadedBearModel.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        
+        console.log("¡Modelo GLB del oso guerrero cargado y calibrado con éxito!");
+    }, undefined, (error) => {
+        console.error("Error cargando el modelo GLB:", error);
+    });
 }
