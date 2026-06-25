@@ -32,6 +32,7 @@ let currentLane = 2;     // Carril actual (0 = Extremo Izquierdo, 2 = Centro, 4 
 let targetX = 0;         // Posición X objetivo a la que el auto debe moverse
 let currentSpeed = GameConfig.defaultSpeed;
 let targetSpeed = GameConfig.defaultSpeed;
+let cameraMode = 'follow'; // Modos: 'follow' (sigue al auto) o 'road' (fija en el centro de la calle)
 
 // Variables para gestos táctiles (móviles)
 let touchStartX = 0;
@@ -213,6 +214,18 @@ function setupEvents() {
         gameActive = true;
     });
 
+    // Botón de cambio de cámara
+    document.getElementById('btn-camera').addEventListener('click', () => {
+        const btn = document.getElementById('btn-camera');
+        if (cameraMode === 'follow') {
+            cameraMode = 'road';
+            btn.textContent = 'CAM: CALLE';
+        } else {
+            cameraMode = 'follow';
+            btn.textContent = 'CAM: AUTO';
+        }
+    });
+
     // --- CONTROLES DE TECLADO ---
     window.addEventListener('keydown', (e) => {
         if (!gameActive) return;
@@ -352,11 +365,18 @@ function animate(time) {
         const targetRotationZ = (targetX - playerCar.position.x) * -0.15;
         playerCar.rotation.z = THREE.MathUtils.lerp(playerCar.rotation.z, targetRotationZ, 8 * deltaTime);
 
-        // C. CONTROL DE VELOCIDAD
+        // C. CONTROL DE LA CÁMARA (Según el modo activo)
+        // Si el modo es 'follow', la cámara sigue la X del auto. Si es 'road', se mantiene en X = 0 (centro de la autopista).
+        // Usamos un lerp suave (factor 10) para que la transición entre modos y el seguimiento sean limpios y fluidos.
+        const targetCamX = (cameraMode === 'follow') ? playerCar.position.x : 0;
+        camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetCamX, 10 * deltaTime);
+        camera.lookAt(new THREE.Vector3(camera.position.x, 0.8, -10));
+
+        // D. CONTROL DE VELOCIDAD
         // Interpolamos la velocidad actual hacia la velocidad objetivo (acelerando o frenando con inercia)
         currentSpeed = THREE.MathUtils.lerp(currentSpeed, targetSpeed, GameConfig.speedChangeRate * deltaTime);
 
-        // D. SIMULACIÓN DE AVANCE (Scrolling del Escenario)
+        // E. SIMULACIÓN DE AVANCE (Scrolling del Escenario)
         // En lugar de mover el auto hacia adelante de forma infinita (lo que causaría que las coordenadas 3D
         // crecieran tanto que perderían precisión), dejamos el auto fijo en Z = 0 y movemos el escenario hacia ATRÁS.
         const scrollAmount = currentSpeed * deltaTime;

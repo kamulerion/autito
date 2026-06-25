@@ -164,6 +164,26 @@ html, body {
     min-width: 100px;
 }
 
+/* Estilo para el botón de cambio de cámara en el HUD */
+.hud-btn {
+    background-color: rgba(30, 30, 30, 0.7);
+    border: 1px solid #555;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    pointer-events: auto; /* Permite hacer clic aunque la capa UI tenga pointer-events: none */
+    align-self: center;
+    transition: background-color 0.1s, border-color 0.1s;
+}
+
+.hud-btn:active {
+    background-color: #444;
+    border-color: #777;
+}
+
 .hud-label {
     font-size: 0.75rem;
     color: #888;

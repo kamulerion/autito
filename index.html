@@ -9,8 +9,27 @@
     <!-- Enlace al archivo de estilos -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- Cargamos Three.js desde un CDN confiable. 
-         Three.js es la biblioteca estándar de facto para renderizar 3D mediante WebGL en navegadores. -->
+    <!-- Script de depuración para atrapar y mostrar errores de JavaScript en pantalla -->
+    <script>
+        window.addEventListener('error', function(e) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '0';
+            errorDiv.style.left = '0';
+            errorDiv.style.width = '100%';
+            errorDiv.style.backgroundColor = '#ef4444';
+            errorDiv.style.color = '#fff';
+            errorDiv.style.padding = '15px';
+            errorDiv.style.zIndex = '99999';
+            errorDiv.style.fontFamily = 'monospace';
+            errorDiv.style.fontSize = '12px';
+            errorDiv.style.whiteSpace = 'pre-wrap';
+            errorDiv.textContent = 'ERROR DE JS:\n' + e.message + '\nEn: ' + e.filename + ':' + e.lineno;
+            document.body.appendChild(errorDiv);
+        });
+    </script>
+    
+    <!-- Cargamos Three.js desde un CDN confiable. -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
     
     <!-- Cargamos nuestro script de juego principal -->
@@ -31,6 +50,8 @@
                     <span class="hud-label">DISTANCIA</span>
                     <span class="hud-value" id="score-value">0m</span>
                 </div>
+                <!-- Botón interactivo para cambiar la vista de la cámara -->
+                <button id="btn-camera" class="hud-btn">CAM: AUTO</button>
                 <div class="hud-item" id="coins-container">
                     <span class="hud-label">MONEDAS</span>
                     <span class="hud-value" id="coins-value">0</span>
